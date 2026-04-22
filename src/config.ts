@@ -34,10 +34,14 @@ function validateConfig(rawConfig: string): Config {
 }
 
 function writeConfig(cfg: Config): void {
-    const data = JSON.stringify({
-        db_url: cfg.dbUrl,
-        current_user_name: cfg.currentUserName,
-    });
+    const data = JSON.stringify(
+        {
+            db_url: cfg.dbUrl,
+            current_user_name: cfg.currentUserName,
+        },
+        null,
+        4,
+    );
 
     fs.writeFileSync(getConfigFilePath(), data, { encoding: "utf-8" });
 }
