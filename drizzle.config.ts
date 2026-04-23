@@ -1,7 +1,7 @@
 import { defineConfig } from "drizzle-kit";
-import { getConfig } from "./src/config";
+import { readConfig } from "./src/config";
 
-const config = getConfig();
+const config = readConfig();
 
 export default defineConfig({
     schema: "src/schema.ts",

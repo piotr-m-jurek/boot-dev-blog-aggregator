@@ -10,11 +10,11 @@ export type Config = {
 };
 
 export function setUser(username: string) {
-    writeConfig({ ...getConfig(), currentUserName: username });
+    writeConfig({ ...readConfig(), currentUserName: username });
 }
 
 /** @throws ParseError */
-export function getConfig() {
+export function readConfig() {
     const rawConfig = fs.readFileSync(getConfigFilePath(), {
         encoding: "utf-8",
     });
