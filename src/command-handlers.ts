@@ -1,6 +1,8 @@
 import { readConfig, setUser } from "./config";
 import { fetchFeed } from "./feed";
+import { createFeed, listFeeds } from "./lib/queries/feed";
 import { createUser, deleteUsers, getUser, getUsers } from "./lib/queries/user";
+import { printFeed } from "./print-feed";
 
 export async function handlerLogin(_: string, ...args: string[]) {
     if (args.length === 0) {
@@ -80,7 +82,38 @@ export async function handlerAgg() {
         process.exit(0);
     } catch (e) {
         // todo: more catching
-        console.error("well something went wrong", e)
+        console.error("well something went wrong", e);
         process.exit(1);
     }
+}
+
+export async function handlerAddFeed(_: string, name: string, url: string) {
+    if (!name) {
+        console.error("Name required when adding feed");
+        process.exit(1);
+    }
+
+    if (!url) {
+        console.error("URL required when adding feed");
+        process.exit(1);
+    }
+    const config = readConfig();
+
+    const currentUser = await getUser(config.currentUserName);
+    if (!currentUser) {
+        throw new Error("Couldn't find user in the database. Register first");
+    }
+
+    const resp = await createFeed(name, url, currentUser.id);
+
+    printFeed(currentUser, resp);
+}
+
+export async function handlerListFeeds() {
+    const resp = await listFeeds();
+    const formatted = resp.map(
+        (feed) => `${feed.feedName} (${feed.feedUrl}) - ${feed.userName}`,
+    );
+
+    console.log(formatted.join("\n"));
 }
