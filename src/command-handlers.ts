@@ -78,8 +78,9 @@ export async function handlerAgg() {
         const result = await fetchFeed("https://www.wagslane.dev/index.xml");
         console.log(JSON.stringify(result));
         process.exit(0);
-    } catch {
+    } catch (e) {
         // todo: more catching
+        console.error("well something went wrong", e)
         process.exit(1);
     }
 }
