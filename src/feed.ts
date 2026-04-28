@@ -1,6 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
 import { z } from "zod/v4";
-import { assertNever } from "./assertNever";
+import { assertNever } from "./lib/assertNever";
 
 const RSSItemSchema = z.object({
     title: z.string(),
@@ -56,8 +56,6 @@ export async function fetchFeed(feedURL: string): Promise<Feed> {
     const raw = await res.text();
     const xml = await parser.parse(raw);
     const json = RSSSchema.safeParse(xml);
-    console.log(JSON.stringify(xml, null, 2));
-    console.log(json);
     if (!json.success) {
         throw new Error("No channel present in RSS feed");
     }

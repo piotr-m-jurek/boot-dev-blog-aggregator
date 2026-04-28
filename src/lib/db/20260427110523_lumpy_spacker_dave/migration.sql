@@ -1,0 +1,1 @@
+ALTER TABLE "feed_follows" ALTER COLUMN "id" SET DEFAULT gen_random_uuid();

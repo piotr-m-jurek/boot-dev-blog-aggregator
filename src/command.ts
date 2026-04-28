@@ -1,6 +1,14 @@
+import type { User } from "./schema";
+
 // === Command ===
 export type CommandHandler = (
     commandName: string,
+    ...args: string[]
+) => Promise<void>;
+
+export type UserCommandHandler = (
+    commandName: string,
+    user: User,
     ...args: string[]
 ) => Promise<void>;
 

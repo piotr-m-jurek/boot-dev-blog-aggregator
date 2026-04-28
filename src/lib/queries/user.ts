@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { users } from "src/schema";
+import { feedFollows, feeds, users } from "src/schema";
 import { db } from "../db";
 
 export async function createUser(userName: string) {
@@ -29,4 +29,18 @@ export async function deleteUsers() {
 
 export async function getUsers() {
     return db.select().from(users);
+}
+
+export async function getFeedFollowsForUser(username: string) {
+    const user = await getUser(username);
+    if (!user) {
+        throw new Error("Couldn't find user in the database. Register first");
+    }
+
+    return db
+        .select()
+        .from(feedFollows)
+        .where(eq(feedFollows.userId, user.id))
+        .innerJoin(users, eq(users.id, feedFollows.userId))
+        .innerJoin(feeds, eq(feeds.id, feedFollows.feedId));
 }

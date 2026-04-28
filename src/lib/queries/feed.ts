@@ -15,7 +15,7 @@ export async function createFeed(
 }
 
 export async function listFeeds() {
-    return  db
+    return db
         .select({
             feedName: feeds.name,
             feedUrl: feeds.url,
@@ -23,4 +23,14 @@ export async function listFeeds() {
         })
         .from(feeds)
         .innerJoin(users, eq(users.id, feeds.userId));
+}
+
+export async function getFeedByUrl(url: string) {
+    const resp = await db
+        .select()
+        .from(feeds)
+        .where(eq(feeds.url, url))
+        .limit(1);
+
+    return resp[0];
 }

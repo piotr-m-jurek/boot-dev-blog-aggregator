@@ -1,8 +1,19 @@
 import { readConfig, setUser } from "./config";
 import { fetchFeed } from "./feed";
-import { createFeed, listFeeds } from "./lib/queries/feed";
-import { createUser, deleteUsers, getUser, getUsers } from "./lib/queries/user";
-import { printFeed } from "./print-feed";
+import { printFeed } from "./lib/print-feed";
+import { createFeed, getFeedByUrl, listFeeds } from "./lib/queries/feed";
+import {
+    createFeedFollow,
+    deleteFeedFollowRecord,
+} from "./lib/queries/feed-follows";
+import {
+    createUser,
+    deleteUsers,
+    getFeedFollowsForUser,
+    getUser,
+    getUsers,
+} from "./lib/queries/user";
+import { User } from "./schema";
 
 export async function handlerLogin(_: string, ...args: string[]) {
     if (args.length === 0) {
@@ -87,7 +98,12 @@ export async function handlerAgg() {
     }
 }
 
-export async function handlerAddFeed(_: string, name: string, url: string) {
+export async function handlerAddFeed(
+    _: string,
+    user: User,
+    name: string,
+    url: string,
+) {
     if (!name) {
         console.error("Name required when adding feed");
         process.exit(1);
@@ -97,16 +113,10 @@ export async function handlerAddFeed(_: string, name: string, url: string) {
         console.error("URL required when adding feed");
         process.exit(1);
     }
-    const config = readConfig();
 
-    const currentUser = await getUser(config.currentUserName);
-    if (!currentUser) {
-        throw new Error("Couldn't find user in the database. Register first");
-    }
-
-    const resp = await createFeed(name, url, currentUser.id);
-
-    printFeed(currentUser, resp);
+    const resp = await createFeed(name, url, user.id);
+    await createFeedFollow({ userId: user.id, feedId: resp.id });
+    printFeed(user, resp);
 }
 
 export async function handlerListFeeds() {
@@ -116,4 +126,24 @@ export async function handlerListFeeds() {
     );
 
     console.log(formatted.join("\n"));
+}
+
+export async function handleFollow(_: string, user: User, url: string) {
+    const feed = await getFeedByUrl(url);
+    const resp = await createFeedFollow({ userId: user.id, feedId: feed.id });
+
+    console.log(`Feed (${resp.feeds.name}) created for: ${resp.users.name}`);
+}
+
+export async function handleFollowing(_: string, user: User) {
+    const resp = await getFeedFollowsForUser(user.name);
+
+    const formatted = resp.map((item) => `- ${item.feeds.name}`);
+    console.log(resp);
+
+    console.log(formatted.join("\n"));
+}
+
+export async function handleUnfollow(_: string, user: User, url: string) {
+     await deleteFeedFollowRecord({ url, userId: user.id });
 }
