@@ -17,8 +17,9 @@ export const users = pgTable("users", {
 
 export const feeds = pgTable("feeds", {
     name: text("name"),
-    url: text("url").unique(),
+    url: text("url").notNull().unique(),
     userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    lastFetchedAt: timestamp(),
     id: uuid().primaryKey().defaultRandom().notNull(),
     createdAt: timestamp().defaultNow().notNull(),
     updatedAt: timestamp()
@@ -29,10 +30,7 @@ export const feeds = pgTable("feeds", {
 
 export const feedRelations = defineRelations({ feeds, users }, (r) => ({
     users: {
-        feeds: r.one.feeds({
-            from: r.users.id,
-            to: r.feeds.userId,
-        }),
+        feeds: r.one.feeds({ from: r.users.id, to: r.feeds.userId }),
     },
 }));
 
@@ -64,8 +62,6 @@ export const feedFollowsRelations = defineRelations(
                 to: r.feeds.id.through(r.feedFollows.feedId),
             }),
         },
-        feeds: {
-            subscribers: r.many.users(),
-        },
+        feeds: { subscribers: r.many.users() },
     }),
 );

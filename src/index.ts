@@ -1,14 +1,14 @@
-import { registerCommand, runCommand } from "./command";
+import * as command from "./command";
 import {
     handleFollow,
     handleFollowing,
-    handlerAddFeed,
-    handlerAgg,
-    handlerListFeeds,
-    handlerLogin,
-    handlerRegister,
-    handlerReset,
-    handlerUsers,
+    handleAddFeed,
+    handleAgg,
+    handleListFeeds,
+    handleLogin,
+    handleRegister,
+    handleReset,
+    handleListUsers,
     handleUnfollow,
 } from "./command-handlers";
 import { middlewareLoggedIn } from "./middleware";
@@ -16,29 +16,29 @@ import { middlewareLoggedIn } from "./middleware";
 const commandRegistry = {};
 
 async function main() {
-    registerCommand(commandRegistry, "login", handlerLogin);
-    registerCommand(commandRegistry, "register", handlerRegister);
-    registerCommand(commandRegistry, "reset", handlerReset);
-    registerCommand(commandRegistry, "users", handlerUsers);
-    registerCommand(commandRegistry, "agg", handlerAgg);
-    registerCommand(
+    command.registerCommand(commandRegistry, "login", handleLogin);
+    command.registerCommand(commandRegistry, "register", handleRegister);
+    command.registerCommand(commandRegistry, "reset", handleReset);
+    command.registerCommand(commandRegistry, "users", handleListUsers);
+    command.registerCommand(commandRegistry, "agg", handleAgg);
+    command.registerCommand(
         commandRegistry,
         "addfeed",
-        middlewareLoggedIn(handlerAddFeed),
+        middlewareLoggedIn(handleAddFeed),
     );
-    registerCommand(commandRegistry, "feeds", handlerListFeeds);
-    registerCommand(
+    command.registerCommand(commandRegistry, "feeds", handleListFeeds);
+    command.registerCommand(
         commandRegistry,
         "follow",
         middlewareLoggedIn(handleFollow),
     );
-    registerCommand(
+    command.registerCommand(
         commandRegistry,
         "following",
         middlewareLoggedIn(handleFollowing),
     );
 
-    registerCommand(
+    command.registerCommand(
         commandRegistry,
         "unfollow",
         middlewareLoggedIn(handleUnfollow),
@@ -52,7 +52,7 @@ async function main() {
 
     const [cmdName, ...args] = parsedArgs;
     try {
-        await runCommand(commandRegistry, cmdName, ...args);
+        await command.runCommand(commandRegistry, cmdName, ...args);
     } catch (e) {
         console.error(e);
         process.exit(1);

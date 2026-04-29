@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
-import { feeds, users } from "src/schema";
+import { asc, eq, sql } from "drizzle-orm";
+import { Feed, feeds, users } from "src/schema";
 import { db } from "../db";
+import { fetchFeed } from "src/feed";
 
 export async function createFeed(
     feedName: string,
@@ -34,3 +35,33 @@ export async function getFeedByUrl(url: string) {
 
     return resp[0];
 }
+
+export async function markFeedAsFetched(id: string) {
+    const now = new Date();
+
+    const [resp] = await db
+        .update(feeds)
+        .set({ updatedAt: now, lastFetchedAt: now })
+        .where(eq(feeds.id, id))
+        .returning();
+    return resp;
+}
+
+export async function getNextFeedToFetch(): Promise<Feed> {
+    const [_] = await db
+        .select()
+        .from(feeds)
+        .orderBy(sql`${feeds.lastFetchedAt} asc nulls first`)
+        .limit(1);
+    return _;
+}
+
+export async function scrapeFeeds() {
+    const feed = await getNextFeedToFetch();
+    await markFeedAsFetched(feed.id);
+    const fetchedFeed = await fetchFeed(feed.url);
+    const formatted = fetchedFeed.items.map((item) => `  - ${item.title}`);
+
+    console.log(formatted.join("\n"));
+}
+

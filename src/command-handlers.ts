@@ -1,7 +1,13 @@
 import { readConfig, setUser } from "./config";
 import { fetchFeed } from "./feed";
+import { parseDuration } from "./lib/duration";
 import { printFeed } from "./lib/print-feed";
-import { createFeed, getFeedByUrl, listFeeds } from "./lib/queries/feed";
+import {
+    createFeed,
+    getFeedByUrl,
+    listFeeds,
+    scrapeFeeds,
+} from "./lib/queries/feed";
 import {
     createFeedFollow,
     deleteFeedFollowRecord,
@@ -13,9 +19,9 @@ import {
     getUser,
     getUsers,
 } from "./lib/queries/user";
-import { User } from "./schema";
+import type { User } from "./schema";
 
-export async function handlerLogin(_: string, ...args: string[]) {
+export async function handleLogin(_: string, ...args: string[]) {
     if (args.length === 0) {
         throw new Error(
             "The login handler expects a single argument, the username.",
@@ -31,7 +37,7 @@ export async function handlerLogin(_: string, ...args: string[]) {
     console.log("The user has been set.");
 }
 
-export async function handlerRegister(_: string, ...args: string[]) {
+export async function handleRegister(_: string, ...args: string[]) {
     if (args.length === 0) {
         throw new Error(
             "The register handler expects a single argument, the username.",
@@ -56,7 +62,7 @@ export async function handlerRegister(_: string, ...args: string[]) {
     }
 }
 
-export async function handlerReset() {
+export async function handleReset() {
     try {
         await deleteUsers();
         process.exit(0);
@@ -66,7 +72,7 @@ export async function handlerReset() {
     }
 }
 
-export async function handlerUsers() {
+export async function handleListUsers() {
     try {
         const config = readConfig();
         const resp = await getUsers();
@@ -86,19 +92,40 @@ export async function handlerUsers() {
     }
 }
 
-export async function handlerAgg() {
-    try {
-        const result = await fetchFeed("https://www.wagslane.dev/index.xml");
-        console.log(JSON.stringify(result));
-        process.exit(0);
-    } catch (e) {
-        // todo: more catching
-        console.error("well something went wrong", e);
+export async function handleAgg(_: string, timeBetweenReqs: string) {
+    const durationMs = parseDuration(timeBetweenReqs);
+    if (!durationMs) {
+        console.error(
+            "Duration format error: <amount><unit> (eg. 1m, 50ms, 5h, 4s)",
+        );
+        process.exit(1);
+    }
+    console.log(`Collecting feeds every ${durationMs} ms`);
+
+    scrapeFeeds().catch(handleError);
+
+    const interval = setInterval(() => {
+        scrapeFeeds().catch(handleError);
+    }, durationMs);
+
+    await new Promise<void>((resolve) => {
+        process.on("SIGINT", () => {
+            console.log("Shutting down feed aggregator...");
+            clearInterval(interval);
+            resolve();
+        });
+    });
+
+    function handleError(e: unknown) {
+        console.error(
+            "something went wrong while scraping feeds",
+            JSON.stringify(e),
+        );
         process.exit(1);
     }
 }
 
-export async function handlerAddFeed(
+export async function handleAddFeed(
     _: string,
     user: User,
     name: string,
@@ -119,7 +146,7 @@ export async function handlerAddFeed(
     printFeed(user, resp);
 }
 
-export async function handlerListFeeds() {
+export async function handleListFeeds() {
     const resp = await listFeeds();
     const formatted = resp.map(
         (feed) => `${feed.feedName} (${feed.feedUrl}) - ${feed.userName}`,
@@ -137,13 +164,11 @@ export async function handleFollow(_: string, user: User, url: string) {
 
 export async function handleFollowing(_: string, user: User) {
     const resp = await getFeedFollowsForUser(user.name);
-
     const formatted = resp.map((item) => `- ${item.feeds.name}`);
-    console.log(resp);
 
     console.log(formatted.join("\n"));
 }
 
 export async function handleUnfollow(_: string, user: User, url: string) {
-     await deleteFeedFollowRecord({ url, userId: user.id });
+    await deleteFeedFollowRecord({ url, userId: user.id });
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "feeds" ALTER COLUMN "url" SET NOT NULL;
