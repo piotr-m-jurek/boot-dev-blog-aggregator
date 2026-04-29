@@ -4,6 +4,7 @@ import {
     handleFollowing,
     handleAddFeed,
     handleAgg,
+    handleBrowse,
     handleListFeeds,
     handleLogin,
     handleRegister,
@@ -42,6 +43,12 @@ async function main() {
         commandRegistry,
         "unfollow",
         middlewareLoggedIn(handleUnfollow),
+    );
+
+    command.registerCommand(
+        commandRegistry,
+        "browse",
+        middlewareLoggedIn(handleBrowse),
     );
 
     const parsedArgs = process.argv.slice(2);

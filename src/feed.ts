@@ -3,11 +3,11 @@ import { z } from "zod/v4";
 import { assertNever } from "./lib/assertNever";
 
 const RSSItemSchema = z.object({
-    title: z.string(),
-    description: z.string(),
-    link: z.string(),
-    guid: z.string(),
-    pubDate: z.string(),
+    title: z.string().optional().default(""),
+    description: z.string().optional().default(""),
+    link: z.string().optional().default(""),
+    guid: z.string().optional().default(""),
+    pubDate: z.string().optional().default(""),
 });
 
 export const FeedItemSchema = z.object({
@@ -19,20 +19,20 @@ export const FeedItemSchema = z.object({
 });
 
 const RSSChannelSchema = z.object({
-    title: z.string(),
-    description: z.string(),
-    link: z.string(),
-    language: z.string(),
-    item: z.union([z.array(z.any()), z.record(z.string(), z.any())]),
+    title: z.string().optional().default(""),
+    description: z.string().optional().default(""),
+    link: z.string().optional().default(""),
+    language: z.string().optional(),
+    item: z.union([z.array(z.any()), z.record(z.string(), z.any())]).optional().default([]),
 });
 
 export const RSSSchema = z.union([
     z.object({
-        "?xml": z.string(),
+        "?xml": z.any().optional(),
         rss: z.object({ channel: RSSChannelSchema }),
     }),
     z.object({
-        "?xml": z.string(),
+        "?xml": z.any().optional(),
         feed: z.object({ entry: RSSChannelSchema }),
     }),
 ]);
@@ -40,7 +40,7 @@ export const RSSSchema = z.union([
 type FeedItem = {
     title: string;
     link: string;
-    desciption: string;
+    description: string;
     pubDate: string;
 };
 
@@ -75,7 +75,7 @@ export async function fetchFeed(feedURL: string): Promise<Feed> {
                 {
                     title: item.data.title,
                     link: item.data.link,
-                    desciption: item.data.description,
+                    description: item.data.description,
                     pubDate: item.data.pubDate,
                 },
             ];

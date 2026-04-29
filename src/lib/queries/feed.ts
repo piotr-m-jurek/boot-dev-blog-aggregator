@@ -59,9 +59,6 @@ export async function getNextFeedToFetch(): Promise<Feed> {
 export async function scrapeFeeds() {
     const feed = await getNextFeedToFetch();
     await markFeedAsFetched(feed.id);
-    const fetchedFeed = await fetchFeed(feed.url);
-    const formatted = fetchedFeed.items.map((item) => `  - ${item.title}`);
-
-    console.log(formatted.join("\n"));
+    const feedData = await fetchFeed(feed.url);
+    return { id: feed.id, ...feedData };
 }
-

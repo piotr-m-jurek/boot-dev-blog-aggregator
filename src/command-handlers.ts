@@ -12,6 +12,7 @@ import {
     createFeedFollow,
     deleteFeedFollowRecord,
 } from "./lib/queries/feed-follows";
+import { createPost, getPostsForUser } from "./lib/queries/post";
 import {
     createUser,
     deleteUsers,
@@ -21,14 +22,7 @@ import {
 } from "./lib/queries/user";
 import type { User } from "./schema";
 
-export async function handleLogin(_: string, ...args: string[]) {
-    if (args.length === 0) {
-        throw new Error(
-            "The login handler expects a single argument, the username.",
-        );
-    }
-
-    const [username] = args;
+export async function handleLogin(_: string, username: string) {
     const response = await getUser(username);
     if (!response) {
         throw new Error("Couldn't find user in the database. Register first");
@@ -37,15 +31,7 @@ export async function handleLogin(_: string, ...args: string[]) {
     console.log("The user has been set.");
 }
 
-export async function handleRegister(_: string, ...args: string[]) {
-    if (args.length === 0) {
-        throw new Error(
-            "The register handler expects a single argument, the username.",
-        );
-    }
-
-    const [username] = args;
-
+export async function handleRegister(_: string, username: string) {
     const exists = await getUser(username);
     if (exists) {
         console.error("User already exists.");
@@ -102,10 +88,10 @@ export async function handleAgg(_: string, timeBetweenReqs: string) {
     }
     console.log(`Collecting feeds every ${durationMs} ms`);
 
-    scrapeFeeds().catch(handleError);
+    scrapeFeeds().then(savePosts).catch(handleError);
 
     const interval = setInterval(() => {
-        scrapeFeeds().catch(handleError);
+        scrapeFeeds().then(savePosts).catch(handleError);
     }, durationMs);
 
     await new Promise<void>((resolve) => {
@@ -116,11 +102,22 @@ export async function handleAgg(_: string, timeBetweenReqs: string) {
         });
     });
 
-    function handleError(e: unknown) {
-        console.error(
-            "something went wrong while scraping feeds",
-            JSON.stringify(e),
+    function savePosts(data: Awaited<ReturnType<typeof scrapeFeeds>>) {
+        return Promise.all(
+            data.items.map((item) =>
+                createPost({
+                    description: item.description,
+                    feedId: data.id,
+                    publishedAt: new Date(item.pubDate),
+                    title: item.title,
+                    url: item.link,
+                }),
+            ),
         );
+    }
+
+    function handleError(e: unknown) {
+        console.error("something went wrong while scraping feeds", e);
         process.exit(1);
     }
 }
@@ -171,4 +168,20 @@ export async function handleFollowing(_: string, user: User) {
 
 export async function handleUnfollow(_: string, user: User, url: string) {
     await deleteFeedFollowRecord({ url, userId: user.id });
+}
+
+export async function handleBrowse(_: string, user: User, limitArg?: string) {
+    const limit = limitArg ? parseInt(limitArg, 10) : 2;
+    const userPosts = await getPostsForUser(user, limit);
+    if (!userPosts.length) {
+        console.log("No posts found.");
+        return;
+    }
+    for (const post of userPosts) {
+        console.log(`--- ${post.title} ---`);
+        console.log(`Published: ${post.publishedAt?.toISOString() ?? "unknown"}`);
+        console.log(`URL: ${post.url}`);
+        if (post.description) console.log(`${post.description.slice(0, 100)}...`);
+        console.log();
+    }
 }

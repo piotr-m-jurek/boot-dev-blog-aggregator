@@ -65,3 +65,28 @@ export const feedFollowsRelations = defineRelations(
         feeds: { subscribers: r.many.users() },
     }),
 );
+
+export const posts = pgTable("posts", {
+    id: uuid("id").primaryKey().defaultRandom().notNull(),
+    createdAt: timestamp().defaultNow().notNull(),
+    updatedAt: timestamp()
+        .defaultNow()
+        .$onUpdate(() => new Date())
+        .notNull(),
+    title: text("title").notNull(),
+    url: text("url").notNull(),
+    description: text("description"),
+    publishedAt: timestamp(),
+    feedId: uuid("feed_id").references(() => feeds.id, {
+        onDelete: "cascade",
+    }),
+});
+
+export const feedPostsRelations = defineRelations({ feeds, posts }, (r) => ({
+    feeds: {
+        posts: r.many.posts({ from: r.feeds.id, to: r.posts.feedId }),
+    },
+    posts: {
+        feed: r.one.feeds({ from: r.posts.feedId, to: r.feeds.id }),
+    },
+}));
